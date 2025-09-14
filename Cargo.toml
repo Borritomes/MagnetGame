@@ -1,0 +1,13 @@
+[package]
+name = "gettingItTwisted"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+avian2d = "0.3.1"
+bevy = {version = "0.16.1", features = ["jpeg"]}
+bevy-inspector-egui = "0.33.1"
+bevy_egui = "0.36.0"
+
+[profile.dev.package."*"]
+opt-level = 3
