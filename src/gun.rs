@@ -1,5 +1,6 @@
 use crate::item::*;
 use crate::magnet::*;
+use crate::player::*;
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
@@ -62,7 +63,7 @@ impl Default for ProjectileSpeed {
 }
 
 #[derive(Component)]
-#[require(RigidBody::Dynamic, LockedAxes::ROTATION_LOCKED, GravityScale(0.0))]
+#[require(LockedAxes::ROTATION_LOCKED, GravityScale(0.0))]
 struct Projectile;
 
 fn shoot_projectiles(
@@ -134,6 +135,8 @@ fn shoot_projectiles(
                                 transform.translation().y + direction.y * 22.,
                             ),
                             LinearVelocity(direction * projectile_speed.0),
+                            CollisionGroup::bullet(),
+                            RigidBody::Dynamic,
                         ));
                     }
                     ProjectileType::Magnet => {
@@ -145,7 +148,7 @@ fn shoot_projectiles(
                             Collider::rectangle(16., 16.),
                             Sprite::from_color(Color::srgb(1., 0., 0.), Vec2::new(16., 16.)),
                             Magnet,
-                            MagentAliveTime::new(5.),
+                            MagentAliveTime::new(3.),
                             Projectile,
                             Position::from_xy(
                                 transform.translation().x + direction.x * 26.,
@@ -153,6 +156,8 @@ fn shoot_projectiles(
                             ),
                             LinearVelocity(direction * projectile_speed.0),
                             MagnetStrength(0.9),
+                            CollisionGroup::magnet(),
+                            RigidBody::Kinematic,
                         ));
                     }
                 }

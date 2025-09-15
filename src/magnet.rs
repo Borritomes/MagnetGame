@@ -64,7 +64,8 @@ fn attract_bullets(
     let magnet_strength = query_magnet.1;
 
     for (mut linear_velocity, transform) in query {
-        let prediction = transform.translation.xy() + (linear_velocity.xy() * time.delta_secs());
+        let prediction =
+            transform.translation.xy() + (linear_velocity.xy() * (time.delta_secs() * 2.0));
 
         let delta = magnet_transform.translation.xy() - prediction;
         linear_velocity.x += (delta.x * magnet_strength.0);

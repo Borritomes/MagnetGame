@@ -13,6 +13,69 @@ impl Plugin for PlayerPlugin {
     }
 }
 
+#[derive(PhysicsLayer, Default)]
+pub enum GameLayer {
+    #[default]
+    Default,
+    Player,
+    Walls,
+    Magnet,
+    Projectiles,
+    Bullets,
+    MagnetPassthrough,
+}
+
+pub struct CollisionGroup;
+
+impl CollisionGroup {
+    pub fn player() -> CollisionLayers {
+        CollisionLayers::new(
+            GameLayer::Player,
+            [
+                GameLayer::Default,
+                GameLayer::Walls,
+                GameLayer::Magnet,
+                GameLayer::MagnetPassthrough,
+            ],
+        )
+    }
+    pub fn magnet() -> CollisionLayers {
+        CollisionLayers::new(
+            [GameLayer::Magnet, GameLayer::Projectiles],
+            [
+                GameLayer::Default,
+                GameLayer::Walls,
+                GameLayer::Projectiles,
+                GameLayer::Player,
+                GameLayer::Bullets,
+            ],
+        )
+    }
+    pub fn bullet() -> CollisionLayers {
+        CollisionLayers::new(
+            [GameLayer::Bullets, GameLayer::Projectiles],
+            [
+                GameLayer::Default,
+                GameLayer::Walls,
+                GameLayer::Projectiles,
+                GameLayer::MagnetPassthrough,
+            ],
+        )
+    }
+    pub fn magnet_passthrough() -> CollisionLayers {
+        CollisionLayers::new(
+            GameLayer::MagnetPassthrough,
+            [
+                GameLayer::Default,
+                GameLayer::Walls,
+                GameLayer::Projectiles,
+                GameLayer::Player,
+                GameLayer::Bullets,
+            ],
+        )
+    }
+}
+
 #[derive(Component)]
 pub struct Player;
 
@@ -36,6 +99,7 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
             RigidBody::Dynamic,
             Collider::rectangle(32., 32.),
             Sprite::from_color(Color::srgb(1., 0.1, 0.25), Vec2::new(32., 32.)),
+            CollisionGroup::player(),
         ))
         .id();
     //make gun
@@ -61,6 +125,14 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
         ChildOf(player),
         Transform::default(),
         Equipped(true),
+    ));
+    //magnet passthrough
+    commands.spawn((
+        Sprite::from_color(Color::srgb(0.25, 0.25, 1.), Vec2::new(128., 16.)),
+        Collider::rectangle(128., 16.),
+        Position::from_xy(0., 128.),
+        RigidBody::Static,
+        CollisionGroup::magnet_passthrough(),
     ));
 }
 
