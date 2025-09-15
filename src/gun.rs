@@ -79,7 +79,7 @@ fn shoot_projectiles(
             &ProjectileSpeed,
             &ActivationKeyCode,
             &ProjectileType,
-            &ProjectileFriction
+            &ProjectileFriction,
         ),
         (With<Item>, With<ShootProjectiles>),
     >,
@@ -94,7 +94,7 @@ fn shoot_projectiles(
         projectile_speed,
         activation_key_code,
         projectile_type,
-        projectile_friction
+        projectile_friction,
     ) in query
     {
         if equipped.0 == false {
@@ -129,7 +129,10 @@ fn shoot_projectiles(
                             Sprite::from_color(Color::srgb(1., 1., 0.), Vec2::new(8., 8.)),
                             Bullet,
                             Projectile,
-                            Position::from_xy(transform.translation().x + direction.x*22., transform.translation().y + direction.y*22.),
+                            Position::from_xy(
+                                transform.translation().x + direction.x * 22.,
+                                transform.translation().y + direction.y * 22.,
+                            ),
                             LinearVelocity(direction * projectile_speed.0),
                         ));
                     }
@@ -144,9 +147,12 @@ fn shoot_projectiles(
                             Magnet,
                             MagentAliveTime::new(5.),
                             Projectile,
-                            Position::from_xy(transform.translation().x + direction.x*26., transform.translation().y + direction.y*26.),
+                            Position::from_xy(
+                                transform.translation().x + direction.x * 26.,
+                                transform.translation().y + direction.y * 26.,
+                            ),
                             LinearVelocity(direction * projectile_speed.0),
-                            MagnetStrength(0.75)
+                            MagnetStrength(0.9),
                         ));
                     }
                 }

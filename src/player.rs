@@ -38,6 +38,7 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
             Sprite::from_color(Color::srgb(1., 0.1, 0.25), Vec2::new(32., 32.)),
         ))
         .id();
+    //make gun
     commands.spawn((
         ShootProjectiles,
         Item,
@@ -49,12 +50,13 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
         Transform::default(),
         Equipped(true),
     ));
+    //make magnet
     commands.spawn((
         ShootProjectiles,
         Item,
         ProjectileSpeed(500.),
         ProjectileType::Magnet,
-        ProjectileFriction(0.95),
+        ProjectileFriction(0.05),
         ActivationKeyCode(KeyCode::ShiftLeft),
         ChildOf(player),
         Transform::default(),
