@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct Equipped(pub bool);
+pub struct Equipped;
 
 #[derive(Component)]
 pub struct Item;

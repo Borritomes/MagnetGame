@@ -18,6 +18,9 @@ pub struct Magnet;
 pub struct MagnetStrength(pub f32);
 
 #[derive(Component)]
+pub struct ProjectileAttraction(pub f32);
+
+#[derive(Component)]
 pub struct MagentAliveTime {
     pub max: f32,
     pub current: f32,
@@ -57,15 +60,15 @@ fn magnet_friction(
 
 fn attract_bullets(
     time: Res<Time>,
-    query: Query<(&mut LinearVelocity, &Transform), With<Bullet>>,
+    query: Query<(&mut LinearVelocity, &Transform, &ProjectileAttraction), With<Bullet>>,
     query_magnet: Single<(&Transform, &MagnetStrength), With<Magnet>>,
 ) {
     let magnet_transform = query_magnet.0;
     let magnet_strength = query_magnet.1;
 
-    for (mut linear_velocity, transform) in query {
-        let prediction =
-            transform.translation.xy() + (linear_velocity.xy() * (time.delta_secs() * 2.0));
+    for (mut linear_velocity, transform, projectile_attraction) in query {
+        let prediction = transform.translation.xy()
+            + (linear_velocity.xy() * (time.delta_secs() * projectile_attraction.0));
 
         let delta = magnet_transform.translation.xy() - prediction;
         linear_velocity.x += (delta.x * magnet_strength.0);

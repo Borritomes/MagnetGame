@@ -4,6 +4,7 @@ pub mod item;
 pub mod magnet;
 pub mod player;
 
+use std::env;
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
@@ -13,6 +14,8 @@ use magnet::*;
 use player::*;
 
 fn main() {
+    unsafe {env::set_var("RUST_BACKTRACE", "1");}
+
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(PhysicsPlugins::default())

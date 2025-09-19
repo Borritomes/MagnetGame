@@ -2,6 +2,7 @@ use crate::gun::*;
 use crate::item::*;
 use avian2d::prelude::*;
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 pub struct PlayerPlugin;
 
@@ -9,7 +10,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
             .add_systems(FixedUpdate, player_movement)
-            .add_systems(Update, camera_follow);
+            .add_systems(Update, (camera_follow, watch_mouse));
     }
 }
 
@@ -74,13 +75,30 @@ impl CollisionGroup {
             ],
         )
     }
+    pub fn walls() -> CollisionLayers {
+        CollisionLayers::new(
+            GameLayer::Walls,
+            [
+                GameLayer::Default,
+                GameLayer::Walls,
+                GameLayer::Projectiles,
+                GameLayer::Player,
+                GameLayer::Bullets,
+                GameLayer::Magnet,
+            ],
+        )
+    }
 }
 
 #[derive(Component)]
 pub struct Player;
 
+#[derive(Component)]
+pub struct LookAtCursor;
+
 fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     let owl = asset_server.load("owl.jpg");
+    let spider = asset_server.load("spider.png");
 
     commands.spawn(Camera2d);
     commands.spawn((
@@ -93,17 +111,24 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     let player = commands
         .spawn((
             Player,
+            LookAtCursor,
             Position::from_xy(0., 0.),
             LinearVelocity::default(),
             LockedAxes::ROTATION_LOCKED,
             RigidBody::Dynamic,
-            Collider::rectangle(32., 32.),
-            Sprite::from_color(Color::srgb(1., 0.1, 0.25), Vec2::new(32., 32.)),
+            Collider::circle(32.),
+            Sprite {
+                image: spider,
+
+                custom_size: Some(Vec2::new(64., 64.)),
+                ..default()
+            },
             CollisionGroup::player(),
         ))
         .id();
     //make gun
     commands.spawn((
+        Sprite::from_color(Color::srgb(0.3, 0.4, 0.7), Vec2::new(16., 16.)),
         ShootProjectiles,
         Item,
         ShootCooldown::new(0.1),
@@ -111,11 +136,31 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
         ProjectileType::Bullet,
         ActivationKeyCode(KeyCode::Space),
         ChildOf(player),
-        Transform::default(),
-        Equipped(true),
+        Transform {
+            translation: Vec3::new(0., 32., 1.),
+            ..default()
+        },
+        Equipped,
+    ));
+    //make weak gun
+    commands.spawn((
+        Sprite::from_color(Color::srgb(0.4, 1.0, 0.2), Vec2::new(16., 16.)),
+        ShootProjectiles,
+        Item,
+        ShootCooldown::new(0.05),
+        ProjectileSpeed(2000.),
+        ProjectileType::WeakBullet,
+        ActivationKeyCode(KeyCode::KeyC),
+        ChildOf(player),
+        Transform {
+            translation: Vec3::new(0., 32., 1.),
+            ..default()
+        },
+        Equipped,
     ));
     //make magnet
     commands.spawn((
+        Sprite::from_color(Color::srgb(0., 0., 0.95), Vec2::new(16., 16.)),
         ShootProjectiles,
         Item,
         ProjectileSpeed(500.),
@@ -123,8 +168,11 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
         ProjectileFriction(0.05),
         ActivationKeyCode(KeyCode::ShiftLeft),
         ChildOf(player),
-        Transform::default(),
-        Equipped(true),
+        Transform {
+            translation: Vec3::new(0., 32., 1.),
+            ..default()
+        },
+        Equipped,
     ));
     //magnet passthrough
     commands.spawn((
@@ -134,9 +182,37 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
         RigidBody::Static,
         CollisionGroup::magnet_passthrough(),
     ));
+    //wall
+    commands.spawn((
+        Sprite::from_color(Color::srgb(0.4, 0.4, 1.), Vec2::new(128., 16.)),
+        Collider::rectangle(128., 16.),
+        Position::from_xy(0., -128.),
+        RigidBody::Static,
+        CollisionGroup::walls(),
+    ));
 }
 
 const SPEED: f32 = 320.;
+
+fn watch_mouse(
+    window: Single<&Window, With<PrimaryWindow>>,
+    query_camera: Query<(&Camera, &GlobalTransform), Without<Item>>,
+    query: Query<&mut Transform, With<LookAtCursor>>,
+) {
+    let (camera, camera_transform) = query_camera.single().unwrap();
+
+    if let Some(world_position) = window
+        .cursor_position()
+        .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor).ok())
+        .map(|ray| ray.origin.truncate())
+    {
+        for mut transform in query {
+            let direction = world_position.xy() - transform.translation.xy();
+            let angle = direction.y.atan2(direction.x) - 1.57079633;
+            transform.rotation = Quat::from_rotation_z(angle);
+        }
+    }
+}
 
 fn player_movement(
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -170,3 +246,18 @@ fn camera_follow(
 ) {
     camera_transform.translation = player_transform.translation
 }
+
+/*fn squish_player(
+    query: Query<(&LinearVelocity, &mut Sprite), With<Player>>
+) {
+    for (linear_velocity, mut sprite) in query {
+        if linear_velocity.length() < 25. {
+            sprite.custom_size = Some(Vec2::new(64., 64.));
+            continue;
+        }
+        let squish_amount = linear_velocity.abs().normalize_or_zero()
+         * ((linear_velocity.length()/10.).min(12.));
+
+        sprite.custom_size = Some(Vec2::new(64., 64.) - squish_amount);
+    }
+}*/
