@@ -10,7 +10,8 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
             .add_systems(FixedUpdate, player_movement)
-            .add_systems(Update, (camera_follow, watch_mouse));
+            .add_systems(Update, (watch_mouse, squish_player).chain())
+            .add_systems(Update, camera_follow);
     }
 }
 
@@ -247,17 +248,12 @@ fn camera_follow(
     camera_transform.translation = player_transform.translation
 }
 
-/*fn squish_player(
-    query: Query<(&LinearVelocity, &mut Sprite), With<Player>>
+fn squish_player(
+    query: Query<(&LinearVelocity, &mut Transform), With<Player>>
 ) {
-    for (linear_velocity, mut sprite) in query {
-        if linear_velocity.length() < 25. {
-            sprite.custom_size = Some(Vec2::new(64., 64.));
-            continue;
-        }
-        let squish_amount = linear_velocity.abs().normalize_or_zero()
-         * ((linear_velocity.length()/10.).min(12.));
+    for (linear_velocity, mut transform) in query {
+        let squish = (linear_velocity.xy()/500.).clamp(Vec2::ZERO, Vec2::ONE);// * linear_velocity.length().min(1.);
 
-        sprite.custom_size = Some(Vec2::new(64., 64.) - squish_amount);
+        transform.rotation = Quat::from_euler(EulerRot::XYZ, squish.y, squish.x, 0.);
     }
-}*/
+}
