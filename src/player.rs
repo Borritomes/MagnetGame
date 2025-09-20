@@ -10,8 +10,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
             .add_systems(FixedUpdate, player_movement)
-            .add_systems(Update, (watch_mouse, squish_player).chain())
-            .add_systems(Update, camera_follow);
+            .add_systems(Update, (camera_follow, watch_mouse));
     }
 }
 
@@ -111,6 +110,7 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     ));
     let player = commands
         .spawn((
+            Name::new("Player"),
             Player,
             LookAtCursor,
             Position::from_xy(0., 0.),
@@ -129,6 +129,7 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
         .id();
     //make gun
     commands.spawn((
+        Name::new("Gun"),
         Sprite::from_color(Color::srgb(0.3, 0.4, 0.7), Vec2::new(16., 16.)),
         ShootProjectiles,
         Item,
@@ -145,6 +146,7 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     ));
     //make weak gun
     commands.spawn((
+        Name::new("WeakGun"),
         Sprite::from_color(Color::srgb(0.4, 1.0, 0.2), Vec2::new(16., 16.)),
         ShootProjectiles,
         Item,
@@ -161,6 +163,7 @@ fn setup(mut commands: Commands, asset_server: ResMut<AssetServer>) {
     ));
     //make magnet
     commands.spawn((
+        Name::new("Magnet"),
         Sprite::from_color(Color::srgb(0., 0., 0.95), Vec2::new(16., 16.)),
         ShootProjectiles,
         Item,
@@ -216,28 +219,59 @@ fn watch_mouse(
 }
 
 fn player_movement(
+    time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     query: Query<&mut LinearVelocity, With<Player>>,
 ) {
-    let mut wish_dir = Vec3::ZERO;
+    let mut wish_dir = Vec2::ZERO;
 
     if keyboard_input.pressed(KeyCode::KeyW) {
-        wish_dir += Vec3::new(0., 1., 0.)
+        wish_dir += Vec2::new(0., 1.)
     }
     if keyboard_input.pressed(KeyCode::KeyS) {
-        wish_dir += Vec3::new(0., -1., 0.)
+        wish_dir += Vec2::new(0., -1.)
     }
     if keyboard_input.pressed(KeyCode::KeyD) {
-        wish_dir += Vec3::new(1., 0., 0.)
+        wish_dir += Vec2::new(1., 0.)
     }
     if keyboard_input.pressed(KeyCode::KeyA) {
-        wish_dir += Vec3::new(-1., 0., 0.)
+        wish_dir += Vec2::new(-1., 0.)
     }
 
     wish_dir = wish_dir.normalize_or_zero();
+    let wish_speed = (wish_dir * SPEED).length();
     for mut linear_velocity in query {
-        linear_velocity.x = wish_dir.x * SPEED;
-        linear_velocity.y = wish_dir.y * SPEED;
+        let current_speed = linear_velocity.dot(wish_dir);
+        let add_speed = wish_speed - current_speed;
+        if add_speed != 0. {
+            let mut accel_speed = 10. * time.delta_secs() * wish_speed;
+            if accel_speed > add_speed {
+                accel_speed = add_speed
+            }
+
+            let new_speed = wish_dir * accel_speed;
+            linear_velocity.x += new_speed.x;
+            linear_velocity.y += new_speed.y;
+        }
+
+        let speed = ((linear_velocity.x * linear_velocity.x)
+            + (linear_velocity.y * linear_velocity.y))
+            .sqrt();
+
+        let control = if speed < 100. { 100. } else { speed };
+        let mut new_speed = speed - (time.delta_secs() * control * 4.);
+
+        if new_speed < 0. {
+            new_speed = 0.
+        }
+
+        new_speed /= speed;
+        if new_speed.is_finite() == false {
+            new_speed = 0.
+        }
+
+        linear_velocity.x *= new_speed;
+        linear_velocity.y *= new_speed;
     }
 }
 
@@ -248,12 +282,18 @@ fn camera_follow(
     camera_transform.translation = player_transform.translation
 }
 
-fn squish_player(
-    query: Query<(&LinearVelocity, &mut Transform), With<Player>>
-) {
+/*fn squish_player(query: Query<(&LinearVelocity, &mut Transform), With<Player>>) {
     for (linear_velocity, mut transform) in query {
-        let squish = (linear_velocity.xy()/500.).clamp(Vec2::ZERO, Vec2::ONE);// * linear_velocity.length().min(1.);
+        let move_dir = (linear_velocity.xy()).clamp(-Vec2::ONE, Vec2::ONE);
+        let squish = (move_dir / 640.) * linear_velocity.length();
 
-        transform.rotation = Quat::from_euler(EulerRot::XYZ, squish.y, squish.x, 0.);
+        let is_both_negative = (squish.x < 0. && squish.y < 0.);
+
+        if is_both_negative == true {
+            transform.rotation = Quat::from_euler(EulerRot::XYZ, squish.y, squish.x, 0.);
+        } else {
+            transform.rotation = Quat::from_euler(EulerRot::XYZ, squish.y, -squish.x, 0.);
+        }
     }
 }
+*/

@@ -115,7 +115,7 @@ fn shoot_projectiles(
     query_magnets: Query<Entity, With<Magnet>>,
 ) {
     let (camera, camera_transform) = query_camera.single().unwrap();
-    
+
     for (
         transform,
         mut shoot_cooldown,
@@ -129,16 +129,16 @@ fn shoot_projectiles(
             shoot_cooldown.remaining -= time.delta_secs();
             continue;
         }
-        
+
         if let Some(world_position) = window
-        .cursor_position()
-        .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor).ok())
-        .map(|ray| ray.origin.truncate())
+            .cursor_position()
+            .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor).ok())
+            .map(|ray| ray.origin.truncate())
         {
             let gun_position = transform.translation().xy();
             let delta = world_position - gun_position;
             let direction = delta.normalize_or_zero();
-            
+
             if keyboard_input.just_pressed(activation_key_code.0) {
                 shoot_cooldown.remaining = shoot_cooldown.cooldown;
                 /*
